@@ -13,7 +13,15 @@ function state.new()
         debugFrame = 0,
         mouseX = 0,
         mouseY = 0,
-        paused = false
+        paused = false,
+        pauseMenuSelection = 1,
+        currentScreen = "start",
+        transition = {
+            active = false,
+            alpha = 0,
+            duration = 1.0,
+            elapsed = 0
+        }
     }
 end
 
