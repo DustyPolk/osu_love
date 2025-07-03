@@ -69,10 +69,8 @@ function love.update(dt)
             gameState.currentScreen = "game"
             gameState.transition.alpha = 0
             
-            -- Initialize game orbs when transitioning
-            for i = 1, config.orbs.minCount do
-                table.insert(orbs, spawner.createRandomOrb(config.window.width, config.window.height))
-            end
+            -- Clear any existing orbs and start fresh with pattern system
+            orbs = {}
         end
     end
     
@@ -92,11 +90,28 @@ function love.update(dt)
     -- Skip updates if paused
     if not gameState.paused then
     
-    -- Update orbs
-    for i, orb in ipairs(orbs) do
+    -- Update orbs with new timing system
+    for i = #orbs, 1, -1 do
+        local orb = orbs[i]
         if orb then
-            orb:update(dt, gameState.time, config.window.width, config.window.height, config.debug)
-            spawner.spawnOrbParticles(orb, particles)
+            local prevState = orb.state
+            local shouldContinue = orb:update(dt, gameState.time, config.window.width, config.window.height, config.debug)
+            
+            -- Check if orb just became missed (OSU! mechanic: lose points for missed orbs)
+            if prevState == "active" and orb.state == "missed" then
+                state.recordMiss(gameState)
+                state.updateAccuracy(gameState)
+                
+                if config.debug then
+                    print("Orb missed! Combo broken. Score: " .. gameState.score .. ", Combo: " .. gameState.combo)
+                end
+            end
+            
+            if not shouldContinue then
+                table.remove(orbs, i)
+            else
+                spawner.spawnOrbParticles(orb, particles)
+            end
         end
     end
     
@@ -132,8 +147,8 @@ function love.update(dt)
         end
     end
     
-    -- Maintain orb count
-    spawner.maintainOrbCount(orbs, config.window.width, config.window.height)
+    -- Update pattern spawning system
+    spawner.updatePatterns(orbs, gameState.time, config.window.width, config.window.height)
     
         -- Debug info
         if config.debug and gameState.debugFrame % 300 == 0 then

@@ -11,11 +11,22 @@ config.background = {
 }
 
 config.orbs = {
-    minCount = 8,
     minSize = 15,
     maxSize = 35,
     pulseSpeed = 3,
-    trailLength = 20
+    trailLength = 20,
+    -- OSU!-style timing parameters
+    spawnTime = 1.0,        -- How long before orb becomes clickable
+    hitWindow = 0.5,        -- How long orb stays clickable
+    fadeInTime = 0.8,       -- Fade in animation duration
+    fadeOutTime = 0.3       -- Fade out animation duration
+}
+
+config.patterns = {
+    groupSize = {min = 2, max = 4},     -- Number of orbs per group
+    spawnInterval = 2.5,                -- Time between pattern groups
+    orbSpacing = 0.3,                   -- Time between orbs in a group
+    difficultyScale = 1.0               -- Multiplier for spawn rates
 }
 
 config.scoring = {

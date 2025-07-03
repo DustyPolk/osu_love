@@ -27,13 +27,13 @@ end
 
 function renderer.drawOrbTrails(orbs, width, height)
     for _, orb in ipairs(orbs) do
-        if not orb or not orb.trail then goto continue_trail end
+        if not orb or not orb.trail or orb.state ~= "active" then goto continue_trail end
         
         for i = 1, #orb.trail - 1 do
             local point1 = orb.trail[i]
             local point2 = orb.trail[i + 1]
             
-            if point1 and point2 and 
+            if point1 and point2 and
                validation.validateCoords(point1.x, point1.y, "trail point1") and
                validation.validateCoords(point2.x, point2.y, "trail point2") then
                 
@@ -42,10 +42,10 @@ function renderer.drawOrbTrails(orbs, width, height)
                 local distance = math.sqrt(dx * dx + dy * dy)
                 
                 if distance < math.min(width, height) * 0.5 then
-                    local alpha = (1 - (i / #orb.trail)) * 0.6
+                    local alpha = (1 - (i / #orb.trail)) * 0.4 * orb:getAlpha()
                     local color = colors.getColor(orb.color)
                     love.graphics.setColor(color[1], color[2], color[3], alpha)
-                    love.graphics.setLineWidth(orb.size * 0.1 * alpha)
+                    love.graphics.setLineWidth(orb.size * 0.05 * alpha)
                     love.graphics.line(point1.x, point1.y, point2.x, point2.y)
                 end
             end
@@ -62,27 +62,47 @@ function renderer.drawOrb(orb)
     
     local pulseSize = orb:getPulseSize()
     local color = colors.getColor(orb.color)
+    local alpha = orb:getAlpha()  -- Get timing-based alpha
     
-    love.graphics.setColor(color[1], color[2], color[3], 0.3)
+    -- Visual feedback based on orb state
+    local stateAlphaMultiplier = 1
+    if orb.state == "spawning" then
+        stateAlphaMultiplier = 0.6  -- Dimmer when spawning
+    elseif orb.state == "active" then
+        stateAlphaMultiplier = 1.0  -- Full brightness when active
+        -- Add subtle glow for active orbs
+        love.graphics.setColor(color[1], color[2], color[3], alpha * 0.2)
+        love.graphics.circle("fill", orb.x, orb.y, pulseSize * 2.0)
+    elseif orb.state == "missed" then
+        stateAlphaMultiplier = 0.3  -- Very dim when missed
+    end
+    
+    -- Outer glow
+    love.graphics.setColor(color[1], color[2], color[3], alpha * 0.3 * stateAlphaMultiplier)
     love.graphics.circle("fill", orb.x, orb.y, pulseSize * 1.5)
     
-    love.graphics.setColor(color[1], color[2], color[3], 0.8)
+    -- Main orb body
+    love.graphics.setColor(color[1], color[2], color[3], alpha * 0.8 * stateAlphaMultiplier)
     love.graphics.circle("fill", orb.x, orb.y, pulseSize)
     
-    love.graphics.setColor(1, 1, 1, 0.6)
+    -- Highlight
+    love.graphics.setColor(1, 1, 1, alpha * 0.6 * stateAlphaMultiplier)
     love.graphics.circle("fill", orb.x - pulseSize * 0.2, orb.y - pulseSize * 0.2, pulseSize * 0.3)
     
-    love.graphics.push()
-    love.graphics.translate(orb.x, orb.y)
-    love.graphics.rotate(orb.rotation)
-    love.graphics.setColor(color[1], color[2], color[3], 0.4)
-    for i = 1, 6 do
+    -- Rotating elements (only for active orbs)
+    if orb.state == "active" then
         love.graphics.push()
-        love.graphics.rotate(i * math.pi / 3)
-        love.graphics.rectangle("fill", pulseSize * 0.8, -2, pulseSize * 0.3, 4)
+        love.graphics.translate(orb.x, orb.y)
+        love.graphics.rotate(orb.rotation)
+        love.graphics.setColor(color[1], color[2], color[3], alpha * 0.4 * stateAlphaMultiplier)
+        for i = 1, 6 do
+            love.graphics.push()
+            love.graphics.rotate(i * math.pi / 3)
+            love.graphics.rectangle("fill", pulseSize * 0.8, -2, pulseSize * 0.3, 4)
+            love.graphics.pop()
+        end
         love.graphics.pop()
     end
-    love.graphics.pop()
 end
 
 function renderer.drawParticles(particles)
@@ -145,7 +165,8 @@ function renderer.drawConnections(orbs)
             for j = i + 1, #orbs do
                 local orb1, orb2 = orbs[i], orbs[j]
                 
-                if orb1 and orb2 and 
+                -- Only show connections between active orbs
+                if orb1 and orb2 and orb1.state == "active" and orb2.state == "active" and
                    validation.validateCoords(orb1.x, orb1.y, "connection orb1") and
                    validation.validateCoords(orb2.x, orb2.y, "connection orb2") then
                     
@@ -153,8 +174,8 @@ function renderer.drawConnections(orbs)
                     local dy = orb1.y - orb2.y
                     local distance = math.sqrt(dx * dx + dy * dy)
                     
-                    if validation.isValidNumber(distance) and distance < 200 and distance > 0 then
-                        local alpha = (1 - distance / 200) * 0.3
+                    if validation.isValidNumber(distance) and distance < 150 and distance > 0 then
+                        local alpha = (1 - distance / 150) * 0.2 * orb1:getAlpha() * orb2:getAlpha()
                         local color1 = colors.getColor(orb1.color)
                         local color2 = colors.getColor(orb2.color)
                         love.graphics.setColor(

@@ -12,7 +12,7 @@ function collision.checkOrbHit(mouseX, mouseY, orbs, gameState, particles, hitEf
     
     for i = #orbs, 1, -1 do
         local orb = orbs[i]
-        if orb then
+        if orb and orb:isActive() then  -- Only check active orbs
             local distance = orb:getDistance(mouseX, mouseY)
             local orbRadius = orb:getPulseSize()
             
@@ -53,7 +53,8 @@ function collision.checkOrbHit(mouseX, mouseY, orbs, gameState, particles, hitEf
                     end
                 end
                 
-                table.remove(orbs, i)
+                -- Mark orb as hit instead of removing it directly
+                orb:hit()
                 
                 return true
             end
