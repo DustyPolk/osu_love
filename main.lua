@@ -86,7 +86,7 @@ function love.update(dt)
     
     -- Update based on current screen
     if gameState.currentScreen == "start" and not gameState.transition.active then
-        start_screen.update(dt, gameState.time)
+        start_screen.update(dt, gameState.time, gameState.mouseX, gameState.mouseY)
     elseif gameState.currentScreen == "game" then
     
     -- Skip updates if paused
@@ -143,10 +143,12 @@ function love.update(dt)
         
     end -- end of not paused check
     
-    else
-        -- Update pause menu when paused
+    -- Update pause menu when paused (should be outside the else block)
+    if gameState.paused then
         pause_menu.update(dt, gameState.mouseX, gameState.mouseY)
     end
+    
+    end -- end of game screen check
 end
 
 function love.draw()
@@ -190,13 +192,17 @@ end
 function love.mousepressed(x, y, button)
     if button == 1 and validation.validateCoords(x, y, "mouse click") then
         if gameState.currentScreen == "start" and not gameState.transition.active then
-            -- Start transition to game
-            gameState.transition.active = true
-            gameState.transition.elapsed = 0
-            start_screen.cleanup()
-            
-            if config.debug then
-                print("Starting transition to game screen")
+            -- Handle start screen mouse click
+            local action = start_screen.mousepressed(x, y, button)
+            if action == "start_game" then
+                -- Start transition to game
+                gameState.transition.active = true
+                gameState.transition.elapsed = 0
+                start_screen.cleanup()
+                
+                if config.debug then
+                    print("Starting transition to game screen")
+                end
             end
         elseif gameState.currentScreen == "game" then
             if gameState.paused then

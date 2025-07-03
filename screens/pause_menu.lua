@@ -13,6 +13,7 @@ local menuOptions = {
 local selectedOption = 1
 local optionHeight = 60
 local optionWidth = 300
+local hoveredOption = nil  -- Track which option is being hovered
 
 function pause_menu.init()
     selectedOption = 1
@@ -21,6 +22,7 @@ end
 function pause_menu.update(dt, mouseX, mouseY)
     -- Update selection based on mouse position
     local startY = config.window.height / 2 - (#menuOptions * optionHeight) / 2
+    hoveredOption = nil  -- Reset hover state
     
     for i, option in ipairs(menuOptions) do
         local optionY = startY + (i - 1) * optionHeight + 20
@@ -29,6 +31,7 @@ function pause_menu.update(dt, mouseX, mouseY)
         if mouseX >= optionX and mouseX <= optionX + optionWidth and
            mouseY >= optionY and mouseY <= optionY + optionHeight - 20 then
             selectedOption = i
+            hoveredOption = i  -- Track which option is being hovered
         end
     end
 end
@@ -59,6 +62,14 @@ function pause_menu.draw()
             
             -- Draw option text with highlight color
             love.graphics.setColor(color[1], color[2], color[3], 1)
+        elseif i == hoveredOption then
+            -- Draw hover effect for mouse-over items
+            local color = colors.getColor(math.floor(love.timer.getTime() % 5) + 1)
+            love.graphics.setColor(color[1], color[2], color[3], 0.15)
+            love.graphics.rectangle("fill", optionX - 5, optionY - 5, optionWidth + 10, optionHeight - 10, 5, 5)
+            
+            -- Draw option text with softer highlight color
+            love.graphics.setColor(color[1], color[2], color[3], 0.9)
         else
             -- Draw option text in white
             love.graphics.setColor(1, 1, 1, 0.8)
@@ -73,7 +84,18 @@ end
 
 function pause_menu.mousepressed(x, y, button)
     if button == 1 then
-        return menuOptions[selectedOption].action
+        -- Check which option was clicked
+        local startY = config.window.height / 2 - (#menuOptions * optionHeight) / 2
+        
+        for i, option in ipairs(menuOptions) do
+            local optionY = startY + (i - 1) * optionHeight + 20
+            local optionX = config.window.width / 2 - optionWidth / 2
+            
+            if x >= optionX and x <= optionX + optionWidth and
+               y >= optionY and y <= optionY + optionHeight - 20 then
+                return option.action
+            end
+        end
     end
     return nil
 end

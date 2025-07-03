@@ -23,6 +23,7 @@ local promptAlpha = 0
 local promptDirection = 1
 local lastWaveTime = 0
 local lastSparkleTime = 0
+local isHovering = false
 
 function start_screen.init()
     -- Clear any existing entities
@@ -55,17 +56,33 @@ function start_screen.init()
     lastSparkleTime = 0
 end
 
-function start_screen.update(dt, time)
+function start_screen.update(dt, time, mouseX, mouseY)
     -- Update title pulse
     titlePulse = titlePulse + dt * 2
     
-    -- Update prompt fade
-    promptAlpha = promptAlpha + promptDirection * dt * 1.5
+    -- Check mouse hover over "Click to Start" text
+    local font = love.graphics.newFont(32)
+    local text = "Click to Start"
+    local textWidth = font:getWidth(text)
+    local textHeight = font:getHeight()
+    local textX = config.window.width / 2 - textWidth / 2
+    local textY = config.window.height * 0.7
+    
+    if mouseX and mouseY then
+        isHovering = mouseX >= textX and mouseX <= textX + textWidth and
+                    mouseY >= textY and mouseY <= textY + textHeight
+    else
+        isHovering = false
+    end
+    
+    -- Update prompt fade (faster when hovering)
+    local fadeSpeed = isHovering and 3.0 or 1.5
+    promptAlpha = promptAlpha + promptDirection * dt * fadeSpeed
     if promptAlpha > 1 then
         promptAlpha = 1
         promptDirection = -1
-    elseif promptAlpha < 0.3 then
-        promptAlpha = 0.3
+    elseif promptAlpha < (isHovering and 0.7 or 0.3) then
+        promptAlpha = isHovering and 0.7 or 0.3
         promptDirection = 1
     end
     
@@ -192,13 +209,53 @@ function start_screen.draw(time)
     love.graphics.setColor(0.8, 0.8, 0.8, 0.8)
     love.graphics.printf("Orb Destroyer", 0, config.window.height / 2 - 20, config.window.width, "center")
     
-    -- Draw prompt with fade effect
+    -- Draw prompt with fade effect and hover highlighting
     love.graphics.setFont(love.graphics.newFont(32))
-    love.graphics.setColor(1, 1, 1, promptAlpha)
+    
+    if isHovering then
+        -- Draw hover background
+        local font = love.graphics.getFont()
+        local text = "Click to Start"
+        local textWidth = font:getWidth(text)
+        local textHeight = font:getHeight()
+        local textX = config.window.width / 2 - textWidth / 2
+        local textY = config.window.height * 0.7
+        
+        local color = colors.getColor(math.floor(titlePulse / 2) % 5 + 1)
+        love.graphics.setColor(color[1], color[2], color[3], 0.2)
+        love.graphics.rectangle("fill", textX - 20, textY - 10, textWidth + 40, textHeight + 20, 10, 10)
+        
+        -- Draw text with highlight color
+        love.graphics.setColor(color[1], color[2], color[3], promptAlpha)
+    else
+        love.graphics.setColor(1, 1, 1, promptAlpha)
+    end
+    
     love.graphics.printf("Click to Start", 0, config.window.height * 0.7, config.window.width, "center")
     
     -- Reset font
     love.graphics.setFont(love.graphics.newFont(12))
+end
+
+function start_screen.mousepressed(x, y, button)
+    if button == 1 then
+        -- Check if click is on "Click to Start" text
+        local font = love.graphics.newFont(32)
+        local text = "Click to Start"
+        local textWidth = font:getWidth(text)
+        local textHeight = font:getHeight()
+        local textX = config.window.width / 2 - textWidth / 2
+        local textY = config.window.height * 0.7
+        
+        if x >= textX and x <= textX + textWidth and
+           y >= textY and y <= textY + textHeight then
+            return "start_game"
+        end
+        
+        -- Allow clicking anywhere else to start as well (maintains old behavior)
+        return "start_game"
+    end
+    return nil
 end
 
 function start_screen.cleanup()
